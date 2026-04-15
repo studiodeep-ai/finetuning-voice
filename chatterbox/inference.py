@@ -1,4 +1,5 @@
 import os
+import tempfile
 import torch
 import numpy as np
 import soundfile as sf
@@ -166,6 +167,36 @@ def build_params(args) -> dict:
         }
 
 
+def _concat_reference_audio(ref_dir: str, ref_files: list) -> str:
+    """
+    Concatenate multiple reference WAV files into a single temp file.
+    All clips are resampled to 16 kHz mono before concatenation so the
+    VoiceEncoder receives a consistent format.
+    """
+    import librosa
+
+    TARGET_SR = 16000
+    chunks = []
+    for fname in ref_files:
+        path = os.path.join(ref_dir, fname)
+        try:
+            data, _ = librosa.load(path, sr=TARGET_SR, mono=True)
+            chunks.append(data.astype(np.float32))
+            # 0.3s silence between clips
+            chunks.append(np.zeros(int(TARGET_SR * 0.3), dtype=np.float32))
+        except Exception as e:
+            logger.warning(f"Skipping reference file {fname}: {e}")
+
+    if not chunks:
+        # Fallback: just return the first file path unchanged
+        return os.path.join(ref_dir, ref_files[0])
+
+    combined = np.concatenate(chunks)
+    tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False, prefix="ref_concat_")
+    sf.write(tmp.name, combined, TARGET_SR)
+    return tmp.name
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Chatterbox finetuned inference",
@@ -254,11 +285,29 @@ Examples:
 
     # --- Reference audio ---
     ref_dir = "speaker_reference"
+    # Exclude "reference.wav" — it's a copy artifact created by train.sh from a
+    # previous run and may not match the current training audio.
     ref_files = sorted([
         f for f in os.listdir(ref_dir)
-        if f.lower().endswith((".wav", ".mp3")) and not f.startswith(".")
+        if f.lower().endswith((".wav", ".mp3"))
+        and not f.startswith(".")
+        and f.lower() != "reference.wav"
     ]) if os.path.isdir(ref_dir) else []
-    audio_prompt = args.ref_audio or (os.path.join(ref_dir, ref_files[0]) if ref_files else cfg.inference_prompt_path)
+
+    if args.ref_audio:
+        audio_prompt = args.ref_audio
+    elif len(ref_files) == 1:
+        audio_prompt = os.path.join(ref_dir, ref_files[0])
+        logger.info(f"Using reference audio: {audio_prompt}")
+    elif len(ref_files) > 1:
+        # Concatenate all reference files to give VoiceEncoder more speaker signal
+        audio_prompt = _concat_reference_audio(ref_dir, ref_files)
+        logger.info(f"Concatenated {len(ref_files)} reference files → {audio_prompt}")
+    else:
+        # Nothing found except possibly reference.wav — fall back to it
+        fallback = os.path.join(ref_dir, "reference.wav")
+        audio_prompt = fallback if os.path.exists(fallback) else cfg.inference_prompt_path
+        logger.info(f"No training audio found; falling back to: {audio_prompt}")
 
     # --- Load model ---
     engine = load_finetuned_engine(device, weights_path=args.checkpoint, base_only=args.base_only)
