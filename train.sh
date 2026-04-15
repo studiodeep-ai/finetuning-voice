@@ -57,6 +57,15 @@ if [[ ! -d "$AUDIO" ]]; then
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Load .env if present (provides HF_TOKEN, BATCH_SIZE, NUM_EPOCHS, etc.)
+if [[ -f "$SCRIPT_DIR/.env" ]]; then
+  set -a
+  # shellcheck source=/dev/null
+  source "$SCRIPT_DIR/.env"
+  set +a
+fi
+
 MODEL_DIR="$SCRIPT_DIR/$MODEL"
 
 if [[ ! -d "$MODEL_DIR" ]]; then
