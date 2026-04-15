@@ -88,17 +88,22 @@ def main():
         sys.exit(1)
 
     # --- Build Hydra override list ---
-    # NOTE: if any override key is rejected by Hydra, check the finetune config at:
+    # Keys verified against:
     #   fish-speech/repo/fish_speech/configs/text2semantic_finetune.yaml
     overrides = [
         f"project={cfg.speaker_name}",
+        # Pretrained weights path (used by tokenizer + model loader)
+        f"pretrained_ckpt_path={cfg.pretrained_model_dir}",
+        # LoRA config (config-group override — appends lora/r_8_alpha_16.yaml)
         f"+lora@model.model.lora_config={cfg.lora_config}",
-        f"model.checkpoint={cfg.pretrained_model_dir}",
-        f"data.train.filelist={protos_dir}",
-        f"train.max_steps={cfg.max_steps}",
-        f"train.batch_size={cfg.batch_size}",
-        f"train.num_workers={cfg.num_workers}",
-        f"train.val_check_interval={cfg.val_check_interval}",
+        # Point proto_files to absolute path (default is relative "data/protos")
+        f"train_dataset.proto_files=[{protos_dir}]",
+        f"val_dataset.proto_files=[{protos_dir}]",
+        # Training knobs
+        f"trainer.max_steps={cfg.max_steps}",
+        f"data.batch_size={cfg.batch_size}",
+        f"data.num_workers={cfg.num_workers}",
+        f"trainer.val_check_interval={cfg.val_check_interval}",
         f"trainer.default_root_dir={cfg.output_dir}",
     ]
 
