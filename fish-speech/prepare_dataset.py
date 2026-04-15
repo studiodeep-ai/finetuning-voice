@@ -98,7 +98,7 @@ def phase1_whisper_segment(audio_dir: Path, speaker: str, language: str, clean: 
 
 
 def phase2_loudness_norm(speaker: str):
-    """Loudness normalization via fap CLI."""
+    """Loudness normalization via fap CLI, then copy .lab files alongside audio."""
     src = SCRIPT_DIR / "data" / "raw" / speaker
     dst = SCRIPT_DIR / "data" / "normalized" / speaker
     dst.mkdir(parents=True, exist_ok=True)
@@ -108,6 +108,13 @@ def phase2_loudness_norm(speaker: str):
         ["fap", "loudness-norm", str(src), str(dst), "--clean"],
         description="Normalizing loudness...",
     )
+
+    # fap only copies audio — copy matching .lab transcript files too
+    lab_files = list(src.glob("*.lab"))
+    for lab in lab_files:
+        import shutil
+        shutil.copy2(lab, dst / lab.name)
+    print(f"  Copied {len(lab_files)} .lab transcript files to data/normalized/{speaker}/")
     print(f"  Phase 2 done: normalized audio in data/normalized/{speaker}/")
 
 
