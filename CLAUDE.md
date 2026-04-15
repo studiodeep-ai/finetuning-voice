@@ -14,7 +14,7 @@ This repo is a GPU-ready toolkit for finetuning TTS (text-to-speech) models on a
 
 ## Repository Structure
 ```
-fintuning-voice/
+finetuning-voice/
 ├── install.sh          # One-shot setup per model
 ├── train.sh            # Training entry point (calls prepare_dataset.py → train.py)
 ├── CLAUDE.md           # This file
@@ -75,18 +75,18 @@ All hyperparameters are in `TrainConfig`. Key ones can be overridden via environ
 ## RunPod Deployment Workflow
 ```bash
 # 1. On RunPod pod (PyTorch 2.6 + CUDA 12.4 template):
-git clone https://github.com/<you>/fintuning-voice.git
-cd fintuning-voice
+git clone https://github.com/<you>/finetuning-voice.git
+cd finetuning-voice
 ./install.sh --model chatterbox   # ~5-10 min first time
 
 # 2. Upload audio from your local machine (separate terminal):
-rsync -avz -e "ssh -p <port>" /path/to/audio/ root@<pod-ip>:/workspace/fintuning-voice/audio/
+rsync -avz -e "ssh -p <port>" /path/to/audio/ root@<pod-ip>:/workspace/finetuning-voice/audio/
 
 # 3. Train:
-./train.sh --model chatterbox --audio /workspace/fintuning-voice/audio --batch 16
+./train.sh --model chatterbox --audio /workspace/finetuning-voice/audio --batch 16
 
 # 4. Download results to local machine:
-rsync -avz -e "ssh -p <port>" root@<pod-ip>:/workspace/fintuning-voice/chatterbox/chatterbox_output/ ./outputs/
+rsync -avz -e "ssh -p <port>" root@<pod-ip>:/workspace/finetuning-voice/chatterbox/chatterbox_output/ ./outputs/
 ```
 
 ## Adding a New Model (e.g., Qwen3-TTS)

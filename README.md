@@ -11,18 +11,18 @@ Coming soon: **Qwen3-TTS**
 
 ```bash
 # 1. Clone and install
-git clone https://github.com/<you>/fintuning-voice.git
-cd fintuning-voice
+git clone https://github.com/<you>/finetuning-voice.git
+cd finetuning-voice
 ./install.sh --model chatterbox
 
 # 2. Upload your voice audio (from local machine)
-rsync -avz -e "ssh -p <PORT>" /path/to/audio/ root@<POD-IP>:/workspace/fintuning-voice/audio/
+rsync -avz -e "ssh -p <PORT>" /path/to/audio/ root@<POD-IP>:/workspace/finetuning-voice/audio/
 
 # 3. Train
-./train.sh --model chatterbox --audio /workspace/fintuning-voice/audio --batch 16
+./train.sh --model chatterbox --audio /workspace/finetuning-voice/audio --batch 16
 
 # 4. Download trained model (from local machine)
-rsync -avz -e "ssh -p <PORT>" root@<POD-IP>:/workspace/fintuning-voice/chatterbox/chatterbox_output/ ./outputs/
+rsync -avz -e "ssh -p <PORT>" root@<POD-IP>:/workspace/finetuning-voice/chatterbox/chatterbox_output/ ./outputs/
 ```
 
 ---
