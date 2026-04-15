@@ -29,13 +29,15 @@ MODEL=""
 AUDIO=""
 EPOCHS=""
 BATCH=""
+SPEAKER=""
 
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --model)  MODEL="$2";  shift 2 ;;
-    --audio)  AUDIO="$2";  shift 2 ;;
-    --epochs) EPOCHS="$2"; shift 2 ;;
-    --batch)  BATCH="$2";  shift 2 ;;
+    --model)   MODEL="$2";   shift 2 ;;
+    --audio)   AUDIO="$2";   shift 2 ;;
+    --epochs)  EPOCHS="$2";  shift 2 ;;
+    --batch)   BATCH="$2";   shift 2 ;;
+    --speaker) SPEAKER="$2"; shift 2 ;;
     *) echo "Unknown argument: $1"; exit 1 ;;
   esac
 done
@@ -77,8 +79,9 @@ echo "=========================================="
 # --------------------------------------------------------------------------
 # Export optional overrides (picked up by src/config.py)
 # --------------------------------------------------------------------------
-[[ -n "$BATCH" ]]  && export BATCH_SIZE="$BATCH"
-[[ -n "$EPOCHS" ]] && export NUM_EPOCHS="$EPOCHS"
+[[ -n "$BATCH" ]]   && export BATCH_SIZE="$BATCH"
+[[ -n "$EPOCHS" ]]  && export NUM_EPOCHS="$EPOCHS"
+[[ -n "$SPEAKER" ]] && export SPEAKER_NAME="$SPEAKER"
 
 # --------------------------------------------------------------------------
 # Run model-specific training pipeline
@@ -94,6 +97,11 @@ echo "[2/3] Copying reference audio to speaker_reference/"
 mkdir -p speaker_reference
 # Copy WAV files (both .wav and .WAV extensions)
 find "$AUDIO" -maxdepth 1 \( -iname "*.wav" -o -iname "*.mp3" \) -exec cp {} speaker_reference/ \; 2>/dev/null || true
+# Standardise reference filename for inference scripts
+REF_WAV=$(find speaker_reference -maxdepth 1 -iname "*.wav" | head -1)
+if [[ -n "$REF_WAV" && "$(basename "$REF_WAV")" != "reference.wav" ]]; then
+  cp "$REF_WAV" speaker_reference/reference.wav
+fi
 REFCOUNT=$(find speaker_reference -maxdepth 1 \( -iname "*.wav" -o -iname "*.mp3" \) | wc -l | tr -d ' ')
 echo "  $REFCOUNT reference file(s) ready."
 
@@ -104,7 +112,7 @@ python3 train.py
 echo ""
 echo "=========================================="
 echo "  Training complete!"
-echo "  Output: $MODEL_DIR/chatterbox_output/"
+echo "  Output: $MODEL_DIR/"
 echo ""
 echo "  To run inference:"
 echo "    cd $MODEL_DIR && python3 inference.py"

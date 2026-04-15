@@ -66,6 +66,12 @@ if [[ "$KEEP_DATASET" == false ]]; then
     rm -rf "$PREPROCESS_DIR"
     echo "  Removed FileBasedDataset/preprocess/"
   fi
+
+  CODES_JSONL="$DATASET_DIR/train_with_codes.jsonl"
+  if [[ -f "$CODES_JSONL" ]]; then
+    rm -f "$CODES_JSONL"
+    echo "  Removed FileBasedDataset/train_with_codes.jsonl"
+  fi
 else
   echo "  Skipping FileBasedDataset/ (--keep-dataset)"
 fi
@@ -74,15 +80,21 @@ fi
 # Training output — checkpoints and finetuned weights
 # --------------------------------------------------------------------------
 if [[ "$KEEP_OUTPUT" == false ]]; then
-  OUTPUT_DIR="$MODEL_DIR/chatterbox_output"
+  # Detect output dir name per model
+  case "$MODEL" in
+    chatterbox) OUTPUT_DIRNAME="chatterbox_output" ;;
+    qwen3-tts)  OUTPUT_DIRNAME="qwen3_output" ;;
+    *)          OUTPUT_DIRNAME="${MODEL}_output" ;;
+  esac
+  OUTPUT_DIR="$MODEL_DIR/$OUTPUT_DIRNAME"
   if [[ -d "$OUTPUT_DIR" ]]; then
     rm -rf "$OUTPUT_DIR"
-    echo "  Removed chatterbox_output/"
+    echo "  Removed $OUTPUT_DIRNAME/"
   else
-    echo "  chatterbox_output/ already empty"
+    echo "  $OUTPUT_DIRNAME/ already empty"
   fi
 else
-  echo "  Skipping chatterbox_output/ (--keep-output)"
+  echo "  Skipping output dir (--keep-output)"
 fi
 
 # --------------------------------------------------------------------------

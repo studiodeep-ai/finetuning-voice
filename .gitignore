@@ -3,8 +3,13 @@
 **/*.safetensors
 **/*.pt
 **/chatterbox_output/
+**/qwen3_output/
 **/outputs/
 **/runs/
+
+# Qwen3-TTS intermediate data
+**/train_raw.jsonl
+**/train_with_codes.jsonl
 
 # Preprocessed tensors (regenerated on each run)
 **/preprocess/

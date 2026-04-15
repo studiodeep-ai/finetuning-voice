@@ -1,0 +1,14 @@
+torch>=2.6.0
+torchaudio>=2.6.0
+transformers
+accelerate>=1.1.0
+safetensors
+huggingface_hub
+qwen-tts
+librosa
+soundfile>=0.12.0
+openai-whisper
+ffmpeg-python
+tqdm
+numpy
+# flash-attn is installed separately by install.sh (CUDA-only, non-fatal if unavailable)

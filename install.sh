@@ -98,6 +98,16 @@ else
   echo "  No CUDA detected, skipping torchcodec."
 fi
 
+# flash-attn — optional but significantly speeds up Qwen3-TTS training.
+# Non-fatal: falls back to eager attention if unavailable.
+if [[ "$MODEL" == "qwen3-tts" ]]; then
+  if python3 -c "import torch; assert torch.cuda.is_available()" &>/dev/null; then
+    echo "  Installing flash-attn (this may take a few minutes) …"
+    pip install flash-attn --no-build-isolation --quiet && echo "  flash-attn installed." \
+      || echo "  flash-attn not available, using eager attention (slower but compatible)."
+  fi
+fi
+
 # --------------------------------------------------------------------------
 # 3. Download pretrained models
 # --------------------------------------------------------------------------
