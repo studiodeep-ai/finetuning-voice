@@ -132,6 +132,73 @@ def step3_download_model():
     print(f"  Model saved to: {PRETRAINED_DIR}")
 
 
+def step4_create_tokenizer_config():
+    """
+    Create tokenizer_config.json so AutoTokenizer.from_pretrained works locally.
+
+    openaudio-s1-mini ships without a tokenizer_config.json. It extends Qwen2's
+    tiktoken vocabulary with fish-speech special tokens. Without this file,
+    AutoTokenizer falls back to reading config.json, sees model_type='dual_ar'
+    (a custom fish-speech architecture never registered with transformers), and
+    raises ValueError. Providing tokenizer_config.json with tokenizer_class=
+    Qwen2Tokenizer bypasses the AutoConfig lookup entirely.
+    """
+    import json
+    import shutil
+
+    config_file = PRETRAINED_DIR / "tokenizer_config.json"
+    if config_file.exists():
+        print("  tokenizer_config.json already exists — skipping.")
+        return
+
+    st_file = PRETRAINED_DIR / "special_tokens.json"
+    if not st_file.exists():
+        print("  WARNING: special_tokens.json not found — cannot create tokenizer config.")
+        return
+
+    special_tokens: dict = json.loads(st_file.read_text())
+
+    # Qwen2Tokenizer loads its tiktoken vocab from a file named "qwen.tiktoken"
+    src = PRETRAINED_DIR / "tokenizer.tiktoken"
+    dst = PRETRAINED_DIR / "qwen.tiktoken"
+    if src.exists() and not dst.exists():
+        shutil.copy2(src, dst)
+        print("  Copied tokenizer.tiktoken → qwen.tiktoken")
+
+    # added_tokens_decoder tells HuggingFace to inject all fish-speech special
+    # tokens with their exact IDs after the base Qwen2 vocab (0–151642).
+    added_tokens_decoder = {
+        str(token_id): {
+            "content": token,
+            "lstrip": False,
+            "normalized": False,
+            "rstrip": False,
+            "single_word": False,
+            "special": True,
+        }
+        for token, token_id in special_tokens.items()
+    }
+
+    eos = "<|end_of_text|>" if "<|end_of_text|>" in special_tokens else "<|endoftext|>"
+    pad = "<|pad|>" if "<|pad|>" in special_tokens else None
+
+    tokenizer_config = {
+        "added_tokens_decoder": added_tokens_decoder,
+        "bos_token": None,
+        "clean_up_tokenization_spaces": False,
+        "eos_token": eos,
+        "errors": "replace",
+        "model_max_length": 32768,
+        "pad_token": pad,
+        "split_special_tokens": False,
+        "tokenizer_class": "Qwen2Tokenizer",
+        "unk_token": None,
+    }
+
+    config_file.write_text(json.dumps(tokenizer_config, indent=2, ensure_ascii=False))
+    print(f"  Created tokenizer_config.json ({len(added_tokens_decoder)} special tokens)")
+
+
 def main():
     print("==========================================")
     print("  fish-speech Setup")
@@ -141,6 +208,7 @@ def main():
     step1_clone_repo()
     step2_install_fish_speech()
     step3_download_model()
+    step4_create_tokenizer_config()
 
     print("\n==========================================")
     print("  Setup complete!")
