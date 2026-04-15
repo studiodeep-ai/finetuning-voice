@@ -77,7 +77,7 @@ All hyperparameters are in `TrainConfig`. Key ones can be overridden via environ
 # 1. On RunPod pod (PyTorch 2.6 + CUDA 12.4 template):
 git clone https://github.com/<you>/finetuning-voice.git
 cd finetuning-voice
-./install.sh --model chatterbox   # ~5-10 min first time
+./install.sh --model chatterbox   # ~5-10 min first time (RTX 5090: use PyTorch 2.8 template)
 
 # 2. Upload audio from your local machine (separate terminal):
 rsync -avz -e "ssh -p <port>" /path/to/audio/ root@<pod-ip>:/workspace/finetuning-voice/audio/
