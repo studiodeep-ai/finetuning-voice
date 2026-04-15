@@ -21,3 +21,6 @@ transformers
 tensorboard
 # Dataset preparation (Whisper for auto-transcription)
 openai-whisper
+# Audio decoding backend for torchaudio 2.8+ on CUDA
+# Installed via install.sh from https://download.pytorch.org/whl/cu128 (not on PyPI)
+# torchcodec

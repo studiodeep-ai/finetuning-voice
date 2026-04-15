@@ -88,6 +88,16 @@ else
   pip install -r "$MODEL_DIR/requirements.txt" --quiet
 fi
 
+# torchcodec — required by torchaudio 2.8+ for audio decoding on CUDA.
+# Must be installed from the PyTorch CUDA index, not PyPI.
+if python3 -c "import torch; assert torch.cuda.is_available()" &>/dev/null; then
+  CUDA_TAG=$(python3 -c "import torch; v=torch.version.cuda or ''; parts=v.split('.')[:2]; print('cu'+''.join(parts)) if parts else print('cu128')")
+  echo "  Installing torchcodec for $CUDA_TAG..."
+  pip install torchcodec --index-url "https://download.pytorch.org/whl/$CUDA_TAG" --quiet
+else
+  echo "  No CUDA detected, skipping torchcodec."
+fi
+
 # --------------------------------------------------------------------------
 # 3. Download pretrained models
 # --------------------------------------------------------------------------
