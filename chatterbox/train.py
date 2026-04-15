@@ -2,6 +2,21 @@ import os
 import sys
 import torch
 from transformers import Trainer, TrainingArguments, EarlyStoppingCallback
+import torch as _torch
+
+
+class ChatterboxTrainer(Trainer):
+    """Trainer subclass that always computes loss during evaluation.
+
+    The HF Trainer's prediction_step skips loss computation when the batch
+    contains no 'labels' key. Our data collator doesn't include one, so we
+    override prediction_step to always run the model and return the loss.
+    """
+    def prediction_step(self, model, inputs, prediction_loss_only, ignore_keys=None):
+        inputs = self._prepare_inputs(inputs)
+        with _torch.no_grad():
+            loss, _ = model(**inputs)
+        return (loss.detach(), None, None)
 from safetensors.torch import save_file
 
 from src.config import TrainConfig
@@ -190,7 +205,7 @@ def main():
         dataloader_pin_memory=True,
     )
 
-    trainer = Trainer(
+    trainer = ChatterboxTrainer(
         model=model_wrapper,
         args=training_args,
         train_dataset=train_ds,

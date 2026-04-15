@@ -32,5 +32,10 @@ class Qwen3TrainConfig:
     num_workers: int = field(default_factory=lambda: int(os.getenv("NUM_WORKERS", "2")))
     learning_rate: float = 2e-5
 
+    # --- Validation + early stopping ---
+    val_split: float = 0.1
+    save_every_epochs: int = field(default_factory=lambda: int(os.getenv("SAVE_EVERY_EPOCHS", "1")))
+    early_stopping_patience: int = field(default_factory=lambda: int(os.getenv("EARLY_STOPPING_PATIENCE", "3")))
+
     # --- Audio codec batch size for prepare_dataset.py ---
     codec_batch_size: int = field(default_factory=lambda: int(os.getenv("CODEC_BATCH", "32")))

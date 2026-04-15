@@ -9,32 +9,16 @@ Status logic:
   - "probably overfitting" — val_loss 30%+ above its best while train_loss is lower
 """
 
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))  # expose common/
+
 from transformers import TrainerCallback, TrainerControl, TrainerState, TrainingArguments
+from common.training_status import get_status
 from src.utils import setup_logger
 
 logger = setup_logger("TrainingMonitor")
-
-OVERFIT_HARD = 1.30   # val_loss > best * 1.30
-OVERFIT_SOFT = 1.15   # val_loss > best * 1.15
-CONVERGE_DELTA = 0.01  # val_loss change smaller than this → stable
-
-
-def _status(train_loss: float, val_loss: float, best_val: float, prev_val: float | None) -> str:
-    ratio = val_loss / best_val if best_val > 0 else 1.0
-
-    if prev_val is None:
-        return "first eval"
-
-    val_dropped = val_loss < prev_val - CONVERGE_DELTA
-    gap = val_loss - train_loss  # positive = val worse than train
-
-    if ratio >= OVERFIT_HARD and gap > 0.05:
-        return "probably overfitting"
-    if ratio >= OVERFIT_SOFT and gap > 0.02:
-        return "watch out"
-    if val_dropped:
-        return "still learning"
-    return "going well"
 
 
 class TrainingMonitorCallback(TrainerCallback):
@@ -59,7 +43,7 @@ class TrainingMonitorCallback(TrainerCallback):
             self.best_val_loss = val_loss
 
         train_loss = self.last_train_loss or val_loss
-        status = _status(train_loss, val_loss, self.best_val_loss, self.prev_val_loss)
+        status = get_status(train_loss, val_loss, self.best_val_loss, self.prev_val_loss)
 
         epoch = metrics.get("epoch", state.epoch or 0)
 
