@@ -92,8 +92,10 @@ def main():
     #   fish-speech/repo/fish_speech/configs/text2semantic_finetune.yaml
     overrides = [
         f"project={cfg.speaker_name}",
-        # Pretrained weights path (used by tokenizer + model loader)
+        # Pretrained weights path (used by model loader)
         f"pretrained_ckpt_path={cfg.pretrained_model_dir}",
+        # Tokenizer expects a directory, not the .tiktoken file itself
+        f"tokenizer.model_path={cfg.pretrained_model_dir}",
         # LoRA config (config-group override — appends lora/r_8_alpha_16.yaml)
         f"+lora@model.model.lora_config={cfg.lora_config}",
         # Point proto_files to absolute path (default is relative "data/protos")
