@@ -30,17 +30,47 @@ BASE_MODEL_DIR = cfg.model_dir
 OUTPUT_DIR = cfg.output_dir
 
 
+def find_finetuned_weights(output_dir: str, is_turbo: bool) -> str:
+    """
+    Return the path to the best available finetuned weights:
+    1. Final safetensors file (written at end of training)
+    2. Latest checkpoint subfolder (written every N epochs during training)
+    """
+    filename = "t3_turbo_finetuned.safetensors" if is_turbo else "t3_finetuned.safetensors"
+    final_path = os.path.join(output_dir, filename)
+    if os.path.exists(final_path):
+        return final_path
+
+    # Fall back to latest checkpoint-NNNN directory
+    checkpoints = sorted(
+        [
+            d for d in os.listdir(output_dir)
+            if d.startswith("checkpoint-") and os.path.isdir(os.path.join(output_dir, d))
+        ],
+        key=lambda d: int(d.split("-")[-1]),
+    ) if os.path.isdir(output_dir) else []
+
+    if checkpoints:
+        ckpt_path = os.path.join(output_dir, checkpoints[-1], filename)
+        if os.path.exists(ckpt_path):
+            return ckpt_path
+        # HF Trainer saves as model.safetensors inside the checkpoint
+        hf_path = os.path.join(output_dir, checkpoints[-1], "model.safetensors")
+        if os.path.exists(hf_path):
+            return hf_path
+
+    return final_path  # return expected path so the error message is clear
+
+
 if IS_TURBO:
-    
-    FINETUNED_WEIGHTS = os.path.join(OUTPUT_DIR, "t3_turbo_finetuned.safetensors")
+    FINETUNED_WEIGHTS = find_finetuned_weights(OUTPUT_DIR, is_turbo=True)
     PARAMS = {
         "temperature": 0.8,
         "exaggeration": 0.5,
         "repetition_penalty": 1.2,
     }
 else:
-    
-    FINETUNED_WEIGHTS = os.path.join(OUTPUT_DIR, "t3_finetuned.safetensors")
+    FINETUNED_WEIGHTS = find_finetuned_weights(OUTPUT_DIR, is_turbo=False)
     PARAMS = {
         "temperature": 0.8,
         "exaggeration": 0.5,

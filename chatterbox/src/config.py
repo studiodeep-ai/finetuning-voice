@@ -48,7 +48,7 @@ class TrainConfig:
 
     learning_rate: float = 1e-5   # T3 is sensitive — keep low
 
-    save_steps: int = 100
+    save_every_epochs: int = field(default_factory=lambda: int(os.getenv("SAVE_EVERY_EPOCHS", "10")))
     save_total_limit: int = 3
 
     # --- Sequence constraints ---

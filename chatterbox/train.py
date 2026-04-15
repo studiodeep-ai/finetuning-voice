@@ -127,15 +127,13 @@ def main():
     # 6. DATASET & WRAPPER
     logger.info("Initializing Dataset...")
     train_ds = ChatterboxDataset(cfg)
-    
-    
+
     trainer_callbacks = []
     if cfg.is_inference:
         inference_cb = InferenceCallback(cfg)
         trainer_callbacks.append(inference_cb)
-    
-    model_wrapper = ChatterboxTrainerWrapper(tts_engine_new.t3)
 
+    model_wrapper = ChatterboxTrainerWrapper(tts_engine_new.t3)
 
     if cfg.is_turbo:
         logger.info("Using Turbo Data Collator (with dynamic prompt masking)")
@@ -144,6 +142,11 @@ def main():
         logger.info("Using Standard Data Collator")
         selected_collator = data_collator_standart
 
+    # Compute save_steps so checkpoints are written every N epochs.
+    import math
+    steps_per_epoch = math.ceil(len(train_ds) / (cfg.batch_size * cfg.grad_accum))
+    save_steps = max(1, steps_per_epoch * cfg.save_every_epochs)
+    logger.info(f"Steps per epoch: {steps_per_epoch} | Saving every {cfg.save_every_epochs} epochs ({save_steps} steps)")
 
     # 7. TRAINING ARGUMENTS
     training_args = TrainingArguments(
@@ -153,7 +156,7 @@ def main():
         learning_rate=cfg.learning_rate,
         num_train_epochs=cfg.num_epochs,
         save_strategy="steps",
-        save_steps=cfg.save_steps,
+        save_steps=save_steps,
         logging_strategy="epoch",
         remove_unused_columns=False, # Required for our custom wrapper
         dataloader_num_workers=cfg.dataloader_num_workers,
