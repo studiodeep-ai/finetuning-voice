@@ -74,20 +74,32 @@ def step2_install_fish_speech():
              "--no-deps", "--quiet"])
         # Install remaining non-torch dependencies that fish-speech needs
         extra_deps = [
+            # Training infrastructure
             "lightning>=2.1.0",
             "hydra-core>=1.3.2",
+            "pyrootutils>=1.0.4",
+            # Audio processing
             "librosa>=0.10.1",
             "soundfile>=0.12.0",
+            "resampy>=0.4.3",
             "pydub",
-            "silero-vad",
+            "descript-audio-codec",   # codec/VQGAN weights loader
+            # ML utilities
+            "loralib>=0.1.2",
+            "einops",
+            "einx[torch]==0.2.2",
+            "transformers",
+            "vector_quantize_pytorch",
+            "datasets==2.18.0",
+            "pydantic==2.9.2",
+            # Misc
+            "natsort",
+            "cachetools",
+            "zstandard>=0.22.0",
             "ormsgpack",
             "tiktoken>=0.8.0",
             "tensorboard>=2.14.1",
-            "natsort",
-            "loralib",
-            "einops",
-            "transformers",
-            "vector_quantize_pytorch",
+            "silero-vad",
             "fish-audio-preprocess",  # provides the `fap` CLI for loudness normalization
         ]
         run([sys.executable, "-m", "pip", "install"] + extra_deps + ["--quiet"])
