@@ -156,11 +156,12 @@ def main():
         save_steps=cfg.save_steps,
         logging_strategy="epoch",
         remove_unused_columns=False, # Required for our custom wrapper
-        dataloader_num_workers=cfg.dataloader_num_workers,    
+        dataloader_num_workers=cfg.dataloader_num_workers,
         report_to=["tensorboard"],
         fp16=False,
         bf16=device.type == "cuda",  # bf16 only works on CUDA; MPS/CPU use fp32
         save_total_limit=cfg.save_total_limit,
+        save_only_model=True,        # Skip optimizer/scheduler state — saves GBs of disk space
         gradient_checkpointing=device.type == "cuda",  # gradient checkpointing is CUDA-only
         dataloader_persistent_workers=True,
         dataloader_pin_memory=True,
