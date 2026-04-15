@@ -1,7 +1,7 @@
 import os
 import sys
 import torch
-from transformers import Trainer, TrainingArguments
+from transformers import Trainer, TrainingArguments, EarlyStoppingCallback
 from safetensors.torch import save_file
 
 from src.config import TrainConfig
@@ -140,7 +140,10 @@ def main():
     val_ds   = Subset(full_ds, indices[n_train:])
     logger.info(f"Dataset split: {n_train} train / {n_val} val (val_split={cfg.val_split})")
 
-    trainer_callbacks = [TrainingMonitorCallback()]
+    trainer_callbacks = [
+        TrainingMonitorCallback(),
+        EarlyStoppingCallback(early_stopping_patience=cfg.early_stopping_patience),
+    ]
     if cfg.is_inference:
         inference_cb = InferenceCallback(cfg)
         trainer_callbacks.append(inference_cb)
@@ -178,7 +181,10 @@ def main():
         fp16=False,
         bf16=device.type == "cuda",  # bf16 only works on CUDA; MPS/CPU use fp32
         save_total_limit=cfg.save_total_limit,
-        save_only_model=True,        # Skip optimizer/scheduler state — saves GBs of disk space
+        save_only_model=True,          # Skip optimizer/scheduler state — saves GBs of disk space
+        load_best_model_at_end=True,   # Restore best checkpoint when training ends/stops early
+        metric_for_best_model="eval_loss",
+        greater_is_better=False,
         gradient_checkpointing=device.type == "cuda",  # gradient checkpointing is CUDA-only
         dataloader_persistent_workers=True,
         dataloader_pin_memory=True,

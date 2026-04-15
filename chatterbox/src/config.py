@@ -51,6 +51,9 @@ class TrainConfig:
     save_every_epochs: int = field(default_factory=lambda: int(os.getenv("SAVE_EVERY_EPOCHS", "10")))
     save_total_limit: int = 3
     val_split: float = 0.1   # Fraction of dataset held out for validation loss
+    # Early stopping: how many evals with no val_loss improvement before stopping.
+    # With save_every_epochs=10 (default), patience=3 means 30 epochs without improvement.
+    early_stopping_patience: int = field(default_factory=lambda: int(os.getenv("EARLY_STOPPING_PATIENCE", "3")))
 
     # --- Sequence constraints ---
     start_text_token: int = 255
