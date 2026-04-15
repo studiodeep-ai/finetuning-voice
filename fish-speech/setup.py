@@ -83,6 +83,11 @@ def step2_install_fish_speech():
             "ormsgpack",
             "tiktoken>=0.8.0",
             "tensorboard>=2.14.1",
+            "natsort",
+            "loralib",
+            "einops",
+            "transformers",
+            "vector_quantize_pytorch",
             "fish-audio-preprocess",  # provides the `fap` CLI for loudness normalization
         ]
         run([sys.executable, "-m", "pip", "install"] + extra_deps + ["--quiet"])
