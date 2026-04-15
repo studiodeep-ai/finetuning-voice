@@ -50,6 +50,7 @@ class TrainConfig:
 
     save_every_epochs: int = field(default_factory=lambda: int(os.getenv("SAVE_EVERY_EPOCHS", "10")))
     save_total_limit: int = 3
+    val_split: float = 0.1   # Fraction of dataset held out for validation loss
 
     # --- Sequence constraints ---
     start_text_token: int = 255

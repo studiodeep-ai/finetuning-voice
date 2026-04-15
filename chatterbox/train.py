@@ -13,6 +13,7 @@ from src.preprocess_json import preprocess_dataset_json_based
 from src.utils import setup_logger, check_pretrained_models
 
 from src.inference_callback import InferenceCallback
+from src.training_monitor import TrainingMonitorCallback
 
 from src.chatterbox_.tts import ChatterboxTTS
 from src.chatterbox_.tts_turbo import ChatterboxTurboTTS
@@ -126,9 +127,20 @@ def main():
         
     # 6. DATASET & WRAPPER
     logger.info("Initializing Dataset...")
-    train_ds = ChatterboxDataset(cfg)
+    full_ds = ChatterboxDataset(cfg)
 
-    trainer_callbacks = []
+    # Train / validation split
+    import math as _math
+    from torch.utils.data import Subset
+    n_total = len(full_ds)
+    n_val = max(1, _math.floor(n_total * cfg.val_split))
+    n_train = n_total - n_val
+    indices = list(range(n_total))
+    train_ds = Subset(full_ds, indices[:n_train])
+    val_ds   = Subset(full_ds, indices[n_train:])
+    logger.info(f"Dataset split: {n_train} train / {n_val} val (val_split={cfg.val_split})")
+
+    trainer_callbacks = [TrainingMonitorCallback()]
     if cfg.is_inference:
         inference_cb = InferenceCallback(cfg)
         trainer_callbacks.append(inference_cb)
@@ -144,9 +156,9 @@ def main():
 
     # Compute save_steps so checkpoints are written every N epochs.
     import math
-    steps_per_epoch = math.ceil(len(train_ds) / (cfg.batch_size * cfg.grad_accum))
+    steps_per_epoch = math.ceil(n_train / (cfg.batch_size * cfg.grad_accum))
     save_steps = max(1, steps_per_epoch * cfg.save_every_epochs)
-    logger.info(f"Steps per epoch: {steps_per_epoch} | Saving every {cfg.save_every_epochs} epochs ({save_steps} steps)")
+    logger.info(f"Steps per epoch: {steps_per_epoch} | Saving/evaluating every {cfg.save_every_epochs} epochs ({save_steps} steps)")
 
     # 7. TRAINING ARGUMENTS
     training_args = TrainingArguments(
@@ -157,6 +169,8 @@ def main():
         num_train_epochs=cfg.num_epochs,
         save_strategy="steps",
         save_steps=save_steps,
+        eval_strategy="steps",
+        eval_steps=save_steps,       # Evaluate at the same frequency as saving
         logging_strategy="epoch",
         remove_unused_columns=False, # Required for our custom wrapper
         dataloader_num_workers=cfg.dataloader_num_workers,
@@ -174,6 +188,7 @@ def main():
         model=model_wrapper,
         args=training_args,
         train_dataset=train_ds,
+        eval_dataset=val_ds,
         data_collator=selected_collator,
         callbacks=trainer_callbacks
     )
