@@ -19,6 +19,7 @@ gdown
 accelerate>=1.1.0
 transformers
 tensorboard
+rich>=13.0.0        # Live terminal dashboard
 # Dataset preparation (Whisper for auto-transcription)
 openai-whisper
 # Audio decoding backend for torchaudio 2.8+ on CUDA

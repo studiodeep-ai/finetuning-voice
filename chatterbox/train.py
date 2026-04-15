@@ -1,7 +1,9 @@
+import logging
 import os
 import sys
 import torch
 from transformers import Trainer, TrainingArguments, EarlyStoppingCallback
+from transformers.trainer_callback import PrinterCallback, ProgressCallback
 import torch as _torch
 
 
@@ -33,6 +35,7 @@ from src.training_monitor import TrainingMonitorCallback
 from src.chatterbox_.tts import ChatterboxTTS
 from src.chatterbox_.tts_turbo import ChatterboxTurboTTS
 from src.chatterbox_.models.t3.t3 import T3
+from src.training_ui import TrainingDashboard
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -40,9 +43,20 @@ logger = setup_logger("ChatterboxFinetune")
 
 
 def main():
-    
+
     cfg = TrainConfig()
-    
+
+    # --- Redirect all logging to a file so the Rich dashboard stays clean ---
+    os.makedirs(cfg.output_dir, exist_ok=True)
+    log_file = os.path.join(cfg.output_dir, "training.log")
+    root = logging.getLogger()
+    root.handlers.clear()
+    root.addHandler(logging.FileHandler(log_file, encoding="utf-8"))
+    root.setLevel(logging.INFO)
+    # Suppress transformers' own verbose output
+    import transformers as _tf
+    _tf.logging.set_verbosity_error()
+
     logger.info("--- Starting Chatterbox Finetuning ---")
     logger.info(f"Mode: {'CHATTERBOX-TURBO' if cfg.is_turbo else 'CHATTERBOX-TTS'}")
 
@@ -155,8 +169,11 @@ def main():
     val_ds   = Subset(full_ds, indices[n_train:])
     logger.info(f"Dataset split: {n_train} train / {n_val} val (val_split={cfg.val_split})")
 
+    model_label = "Chatterbox-Turbo" if cfg.is_turbo else "Chatterbox"
+    dashboard = TrainingDashboard(model_name=model_label, total_epochs=cfg.num_epochs)
+
     trainer_callbacks = [
-        TrainingMonitorCallback(),
+        TrainingMonitorCallback(dashboard=dashboard),
         EarlyStoppingCallback(early_stopping_patience=cfg.early_stopping_patience),
     ]
     if cfg.is_inference:
@@ -211,8 +228,12 @@ def main():
         train_dataset=train_ds,
         eval_dataset=val_ds,
         data_collator=selected_collator,
-        callbacks=trainer_callbacks
+        callbacks=trainer_callbacks,
     )
+
+    # Remove HF's default noisy callbacks — our dashboard replaces them
+    trainer.remove_callback(PrinterCallback)
+    trainer.remove_callback(ProgressCallback)
 
     logger.info("Starting Training Loop...")
     trainer.train()
