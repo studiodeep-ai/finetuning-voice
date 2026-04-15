@@ -1,0 +1,44 @@
+# Model weights & checkpoints
+**/pretrained_models/
+**/*.safetensors
+**/*.pt
+**/chatterbox_output/
+**/outputs/
+**/runs/
+
+# Preprocessed tensors (regenerated on each run)
+**/preprocess/
+
+# Dataset audio (large, provided at runtime via --audio flag)
+# Keep .gitkeep files but ignore actual audio in speaker_reference
+chatterbox/speaker_reference/*.wav
+chatterbox/speaker_reference/*.WAV
+chatterbox/speaker_reference/*.mp3
+!chatterbox/speaker_reference/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Logs
+*.log
+tensorboard_logs/
+
+# Environment
+.env
