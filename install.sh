@@ -26,7 +26,7 @@ done
 
 if [[ -z "$MODEL" ]]; then
   echo "Usage: $0 --model <model>"
-  echo "Available models: chatterbox, qwen3-tts"
+  echo "Available models: chatterbox, qwen3-tts, fish-speech"
   exit 1
 fi
 

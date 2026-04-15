@@ -15,7 +15,7 @@
 #   - Your source audio folder        (never touched)
 #
 # Options:
-#   --model        chatterbox | qwen3-tts  (default: chatterbox)
+#   --model        chatterbox | qwen3-tts | fish-speech  (default: chatterbox)
 #   --keep-dataset keep FileBasedDataset pairs and tensors
 #   --keep-output  keep chatterbox_output/ checkpoints
 
@@ -48,32 +48,45 @@ echo "=========================================="
 echo ""
 
 # --------------------------------------------------------------------------
-# FileBasedDataset — segmented WAV/TXT pairs and preprocessed tensors
+# Dataset — segmented audio pairs and intermediate files
 # --------------------------------------------------------------------------
 if [[ "$KEEP_DATASET" == false ]]; then
-  DATASET_DIR="$MODEL_DIR/FileBasedDataset"
 
-  count=$(find "$DATASET_DIR" -maxdepth 1 \( -name "*.wav" -o -name "*.txt" \) 2>/dev/null | wc -l | tr -d ' ')
-  if [[ "$count" -gt 0 ]]; then
-    find "$DATASET_DIR" -maxdepth 1 \( -name "*.wav" -o -name "*.txt" \) -delete
-    echo "  Removed $count files from FileBasedDataset/"
+  if [[ "$MODEL" == "fish-speech" ]]; then
+    # fish-speech uses data/ instead of FileBasedDataset/
+    DATA_DIR="$MODEL_DIR/data"
+    if [[ -d "$DATA_DIR" ]]; then
+      rm -rf "$DATA_DIR"
+      echo "  Removed data/ (raw, normalized, protos)"
+    else
+      echo "  data/ already empty"
+    fi
   else
-    echo "  FileBasedDataset/ already empty"
+    DATASET_DIR="$MODEL_DIR/FileBasedDataset"
+
+    count=$(find "$DATASET_DIR" -maxdepth 1 \( -name "*.wav" -o -name "*.txt" \) 2>/dev/null | wc -l | tr -d ' ')
+    if [[ "$count" -gt 0 ]]; then
+      find "$DATASET_DIR" -maxdepth 1 \( -name "*.wav" -o -name "*.txt" \) -delete
+      echo "  Removed $count files from FileBasedDataset/"
+    else
+      echo "  FileBasedDataset/ already empty"
+    fi
+
+    PREPROCESS_DIR="$DATASET_DIR/preprocess"
+    if [[ -d "$PREPROCESS_DIR" ]]; then
+      rm -rf "$PREPROCESS_DIR"
+      echo "  Removed FileBasedDataset/preprocess/"
+    fi
+
+    CODES_JSONL="$DATASET_DIR/train_with_codes.jsonl"
+    if [[ -f "$CODES_JSONL" ]]; then
+      rm -f "$CODES_JSONL"
+      echo "  Removed FileBasedDataset/train_with_codes.jsonl"
+    fi
   fi
 
-  PREPROCESS_DIR="$DATASET_DIR/preprocess"
-  if [[ -d "$PREPROCESS_DIR" ]]; then
-    rm -rf "$PREPROCESS_DIR"
-    echo "  Removed FileBasedDataset/preprocess/"
-  fi
-
-  CODES_JSONL="$DATASET_DIR/train_with_codes.jsonl"
-  if [[ -f "$CODES_JSONL" ]]; then
-    rm -f "$CODES_JSONL"
-    echo "  Removed FileBasedDataset/train_with_codes.jsonl"
-  fi
 else
-  echo "  Skipping FileBasedDataset/ (--keep-dataset)"
+  echo "  Skipping dataset dir (--keep-dataset)"
 fi
 
 # --------------------------------------------------------------------------
@@ -82,9 +95,10 @@ fi
 if [[ "$KEEP_OUTPUT" == false ]]; then
   # Detect output dir name per model
   case "$MODEL" in
-    chatterbox) OUTPUT_DIRNAME="chatterbox_output" ;;
-    qwen3-tts)  OUTPUT_DIRNAME="qwen3_output" ;;
-    *)          OUTPUT_DIRNAME="${MODEL}_output" ;;
+    chatterbox)   OUTPUT_DIRNAME="chatterbox_output" ;;
+    qwen3-tts)    OUTPUT_DIRNAME="qwen3_output" ;;
+    fish-speech)  OUTPUT_DIRNAME="fish_speech_output" ;;
+    *)            OUTPUT_DIRNAME="${MODEL}_output" ;;
   esac
   OUTPUT_DIR="$MODEL_DIR/$OUTPUT_DIRNAME"
   if [[ -d "$OUTPUT_DIR" ]]; then
@@ -92,6 +106,15 @@ if [[ "$KEEP_OUTPUT" == false ]]; then
     echo "  Removed $OUTPUT_DIRNAME/"
   else
     echo "  $OUTPUT_DIRNAME/ already empty"
+  fi
+
+  # fish-speech also has a merged_model/ directory
+  if [[ "$MODEL" == "fish-speech" ]]; then
+    MERGED_DIR="$MODEL_DIR/merged_model"
+    if [[ -d "$MERGED_DIR" ]]; then
+      rm -rf "$MERGED_DIR"
+      echo "  Removed merged_model/"
+    fi
   fi
 else
   echo "  Skipping output dir (--keep-output)"

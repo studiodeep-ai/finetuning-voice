@@ -4,8 +4,14 @@
 **/*.pt
 **/chatterbox_output/
 **/qwen3_output/
+**/fish_speech_output/
 **/outputs/
 **/runs/
+
+# Fish-speech runtime dirs (repo clone, training data, merged model)
+fish-speech/repo/
+fish-speech/data/
+fish-speech/merged_model/
 
 # Qwen3-TTS intermediate data
 **/train_raw.jsonl

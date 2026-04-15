@@ -1,0 +1,137 @@
+"""
+setup.py — One-time setup for fish-speech finetuning.
+
+What this does:
+  1. Clones https://github.com/fishaudio/fish-speech → ./repo/
+  2. Installs fish-speech Python package (torch-safe for RunPod)
+  3. Downloads fishaudio/openaudio-s1-mini weights → ./pretrained_models/openaudio-s1-mini/
+
+Run via:  python3 setup.py   (called automatically by install.sh)
+"""
+
+import subprocess
+import sys
+from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).parent.resolve()
+REPO_DIR = SCRIPT_DIR / "repo"
+PRETRAINED_DIR = SCRIPT_DIR / "pretrained_models" / "openaudio-s1-mini"
+
+FISH_SPEECH_REPO = "https://github.com/fishaudio/fish-speech"
+FISH_SPEECH_MODEL = "fishaudio/openaudio-s1-mini"
+
+
+def run(cmd, **kwargs):
+    print(f"  $ {' '.join(str(c) for c in cmd)}")
+    subprocess.run([str(c) for c in cmd], check=True, **kwargs)
+
+
+def step1_clone_repo():
+    print("\n[1/3] Cloning fish-speech repository...")
+    if REPO_DIR.exists() and any(REPO_DIR.iterdir()):
+        print(f"  repo/ already exists — skipping clone.")
+        return
+    REPO_DIR.mkdir(parents=True, exist_ok=True)
+    run(["git", "clone", "--depth", "1", FISH_SPEECH_REPO, str(REPO_DIR)])
+    print("  Cloned successfully.")
+
+
+def step2_install_fish_speech():
+    print("\n[2/3] Installing fish-speech package...")
+
+    # Detect CUDA version for the correct extras tag
+    cuda_tag = "cpu"
+    try:
+        result = subprocess.run(
+            [sys.executable, "-c",
+             "import torch; v=torch.version.cuda or ''; "
+             "parts=v.split('.')[:2]; "
+             "print('cu'+''.join(parts)) if v else print('cpu')"],
+            capture_output=True, text=True,
+        )
+        if result.returncode == 0:
+            cuda_tag = result.stdout.strip()
+    except Exception:
+        pass
+    print(f"  Detected compute tag: {cuda_tag}")
+
+    # Detect whether torch is already installed (RunPod ships a GPU-specific build).
+    # If so, install fish-speech WITHOUT its torch dependency to avoid downgrading.
+    torch_installed = False
+    try:
+        subprocess.run(
+            [sys.executable, "-c", "import torch"],
+            check=True, capture_output=True,
+        )
+        torch_installed = True
+    except subprocess.CalledProcessError:
+        pass
+
+    if torch_installed:
+        print("  torch already installed — installing fish-speech without torch deps...")
+        # Install the package itself (no ML deps)
+        run([sys.executable, "-m", "pip", "install", "-e", str(REPO_DIR),
+             "--no-deps", "--quiet"])
+        # Install remaining non-torch dependencies that fish-speech needs
+        extra_deps = [
+            "lightning>=2.1.0",
+            "hydra-core>=1.3.2",
+            "librosa>=0.10.1",
+            "soundfile>=0.12.0",
+            "pydub",
+            "silero-vad",
+            "ormsgpack",
+            "tiktoken>=0.8.0",
+            "tensorboard>=2.14.1",
+            "fish-audio-preprocess",  # provides the `fap` CLI for loudness normalization
+        ]
+        run([sys.executable, "-m", "pip", "install"] + extra_deps + ["--quiet"])
+    else:
+        print(f"  Installing fish-speech[{cuda_tag}]...")
+        run([sys.executable, "-m", "pip", "install",
+             "-e", f"{REPO_DIR}[{cuda_tag}]", "--quiet"])
+
+    print("  fish-speech installed.")
+
+
+def step3_download_model():
+    print("\n[3/3] Downloading pretrained model weights...")
+    if PRETRAINED_DIR.exists() and any(PRETRAINED_DIR.iterdir()):
+        print(f"  pretrained_models/openaudio-s1-mini/ already downloaded — skipping.")
+        return
+
+    PRETRAINED_DIR.mkdir(parents=True, exist_ok=True)
+    try:
+        from huggingface_hub import snapshot_download
+    except ImportError:
+        run([sys.executable, "-m", "pip", "install", "huggingface-hub>=0.26.0", "--quiet"])
+        from huggingface_hub import snapshot_download
+
+    print(f"  Downloading {FISH_SPEECH_MODEL} (this may take several minutes)...")
+    snapshot_download(
+        repo_id=FISH_SPEECH_MODEL,
+        local_dir=str(PRETRAINED_DIR),
+    )
+    print(f"  Model saved to: {PRETRAINED_DIR}")
+
+
+def main():
+    print("==========================================")
+    print("  fish-speech Setup")
+    print(f"  Directory: {SCRIPT_DIR}")
+    print("==========================================")
+
+    step1_clone_repo()
+    step2_install_fish_speech()
+    step3_download_model()
+
+    print("\n==========================================")
+    print("  Setup complete!")
+    print("")
+    print("  Next step:")
+    print("    ./train.sh --model fish-speech --audio /path/to/audio")
+    print("==========================================\n")
+
+
+if __name__ == "__main__":
+    main()

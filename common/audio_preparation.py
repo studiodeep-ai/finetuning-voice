@@ -113,13 +113,26 @@ def merge_short_segments(segments, min_dur: float, max_dur: float):
     return chunks
 
 
-def save_chunk(audio: np.ndarray, start: float, end: float, text: str, out_dir: Path) -> str:
-    """Slice audio and write paired .wav + .txt to out_dir. Returns the UUID name."""
+def save_chunk(
+    audio: np.ndarray,
+    start: float,
+    end: float,
+    text: str,
+    out_dir: Path,
+    ext: str = ".txt",
+) -> str:
+    """Slice audio and write paired .wav + transcript to out_dir.
+
+    Args:
+        ext: Transcript file extension. Default ".txt"; use ".lab" for fish-speech.
+
+    Returns the UUID stem name (without extension).
+    """
     s, e = int(start * TARGET_SR), int(end * TARGET_SR)
     chunk = audio[s:e]
     name = str(uuid.uuid4())
     sf.write(str(out_dir / f"{name}.wav"), chunk, TARGET_SR, subtype="PCM_16")
-    (out_dir / f"{name}.txt").write_text(text, encoding="utf-8")
+    (out_dir / f"{name}{ext}").write_text(text, encoding="utf-8")
     duration = len(chunk) / TARGET_SR
     print(f"  [{start:.1f}s – {end:.1f}s]  ({duration:.1f}s)  {text[:60]!r}")
     return name

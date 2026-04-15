@@ -45,7 +45,7 @@ done
 if [[ -z "$MODEL" || -z "$AUDIO" ]]; then
   echo "Usage: $0 --model <model> --audio <audio-folder> [--epochs N] [--batch N]"
   echo ""
-  echo "Available models: chatterbox, qwen3-tts"
+  echo "Available models: chatterbox, qwen3-tts, fish-speech"
   exit 1
 fi
 

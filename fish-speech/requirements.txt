@@ -1,0 +1,5 @@
+huggingface-hub>=0.26.0
+rich>=13.0.0
+# NOTE: fish-speech itself (PyTorch Lightning + Hydra + audio deps) is installed
+# from the cloned GitHub repo by setup.py — not listed here to avoid pip conflicts
+# with the RunPod GPU-specific torch build.
