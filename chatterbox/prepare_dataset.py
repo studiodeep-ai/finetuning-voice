@@ -54,8 +54,21 @@ def load_mono_16k(audio_path: str) -> np.ndarray:
 
 
 def transcribe_with_timestamps(audio_path: str, language: str = "nl"):
-    """Return Whisper segments list with start/end/text."""
+    """Return Whisper segments list with start/end/text.
+
+    Results are cached as <audio_path>.whisper.json next to the source file.
+    Delete that file to force re-transcription.
+    """
+    import json
     import whisper
+
+    cache_path = Path(audio_path).with_suffix(".whisper.json")
+
+    if cache_path.exists():
+        print(f"  Using cached transcription: {cache_path.name}")
+        segments = json.loads(cache_path.read_text(encoding="utf-8"))
+        print(f"  Loaded {len(segments)} cached segments.\n")
+        return segments
 
     print(f"Loading Whisper model (medium) …")
     model = whisper.load_model("medium")
@@ -69,8 +82,13 @@ def transcribe_with_timestamps(audio_path: str, language: str = "nl"):
     )
 
     segments = result["segments"]
+
+    # Strip non-serialisable fields Whisper adds (tokens, temperature, etc.)
+    clean = [{"start": s["start"], "end": s["end"], "text": s["text"]} for s in segments]
+    cache_path.write_text(json.dumps(clean, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"  Transcription cached to: {cache_path.name}")
     print(f"  Got {len(segments)} Whisper segments.\n")
-    return segments
+    return clean
 
 
 def merge_short_segments(segments, min_dur: float, max_dur: float):

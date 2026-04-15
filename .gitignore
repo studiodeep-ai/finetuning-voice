@@ -9,6 +9,9 @@
 # Preprocessed tensors (regenerated on each run)
 **/preprocess/
 
+# Whisper transcription cache (stored next to source audio, not committed)
+**/*.whisper.json
+
 # Dataset audio (large, provided at runtime via --audio flag)
 # Keep .gitkeep files but ignore actual audio in speaker_reference
 chatterbox/speaker_reference/*.wav

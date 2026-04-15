@@ -66,7 +66,7 @@ def preprocess_dataset_file_based(config, tts_engine: ChatterboxTTS):
                 continue
 
 
-            wav, sr = torchaudio.load(wav_path, backend="soundfile")
+            wav, sr = torchaudio.load(wav_path)
             
 
             if wav.shape[0] > 1: 
