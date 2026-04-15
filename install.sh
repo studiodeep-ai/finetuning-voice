@@ -77,7 +77,16 @@ fi
 # --------------------------------------------------------------------------
 echo ""
 echo "[2/3] Installing Python packages..."
-pip install -r "$MODEL_DIR/requirements.txt" --quiet
+
+# Skip torch/torchaudio/torchvision if already installed — the RunPod template
+# ships a GPU-specific build (e.g. sm_120 for RTX 5090) that PyPI cannot provide.
+if python3 -c "import torch" &>/dev/null; then
+  echo "  torch already installed ($(python3 -c 'import torch; print(torch.__version__)')), skipping torch/torchaudio/torchvision."
+  grep -v -E '^(torch|torchaudio|torchvision)(>|<|=|!|$)' "$MODEL_DIR/requirements.txt" > /tmp/requirements_notorch.txt
+  pip install -r /tmp/requirements_notorch.txt --quiet
+else
+  pip install -r "$MODEL_DIR/requirements.txt" --quiet
+fi
 
 # --------------------------------------------------------------------------
 # 3. Download pretrained models
